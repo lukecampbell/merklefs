@@ -2,7 +2,7 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memset, strerror, memcpy
 from libc.errno cimport errno, EAGAIN
 from mfs.exceptions import BufferOverflow
-from sha cimport SHA1
+from sha cimport SHA1, PySHA1
 import sys
 
 cdef extern from "unistd.h" nogil:
@@ -211,6 +211,14 @@ cdef class StringBuffer:
 
     def hash(self):
         cdef StringBuffer md = StringBuffer(20)
-        SHA1(<unsigned char *>self.buff, self.size, <unsigned char *>md.buff)
+        cdef PySHA1 sha1 = PySHA1()
+        cdef size_t bytes_hashed = 0
+        cdef size_t bytes_to_hash
+        while bytes_hashed < self.size:
+            bytes_to_hash = min(self.size - bytes_hashed, 4096)
+            sha1.update(self.buff + bytes_hashed, bytes_to_hash)
+            bytes_hashed += bytes_to_hash
+        sha1.final(<unsigned char *>md.buff)
+
         return md
 

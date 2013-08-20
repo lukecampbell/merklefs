@@ -109,4 +109,12 @@ class TestStringBuffer(MFSTestCase):
         from hashlib import sha1
         outside = StringBuffer(sha1(buf.raw_read()).digest())
         self.assertEquals(outside.raw_read(), buf_sha.raw_read())
+        
+    def test_large_hash(self):
+        with open('/dev/urandom', 'r+b') as f:
+            buf = StringBuffer.from_file(f.fileno(), 4096 * 3)
+        buf_sha = buf.hash()
+        from hashlib import sha1
+        outside = StringBuffer(sha1(buf.raw_read()).digest())
+        self.assertEquals(outside.raw_read(), buf_sha.raw_read())
 
