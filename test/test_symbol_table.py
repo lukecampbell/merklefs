@@ -2,11 +2,13 @@
 from test.test_case import MFSTestCase
 from test.performance import PerformanceTestCase
 
+from mfs.objects import MFSObjectHeader
 from mfs.symbol_table import SymbolTable, SymbolTableHeader
 from mfs.exceptions import SerializationError
 from mfs.string_buffer import StringBuffer
 from tempfile import TemporaryFile
 from nose.plugins.attrib import attr
+import random
 
 @attr('unit')
 class TestSymbolTable(MFSTestCase):
@@ -14,7 +16,7 @@ class TestSymbolTable(MFSTestCase):
         st = SymbolTable()
 
         st.add('root')
-        self.assertRaises(SerializationError, st.add, 1)
+        self.assertRaises(TypeError, st.add, 1)
 
     def test_symbol_table_write(self):
         st = SymbolTable()
@@ -32,19 +34,14 @@ class TestSymbolTable(MFSTestCase):
 
             f.seek(0)
 
-            sb = StringBuffer(256)
-            sb.fread(f.fileno())
-            
-            sb.seek(0)
+            sb = StringBuffer.from_file(f.fileno(), 16)
+            header = MFSObjectHeader.deserialize(sb)
 
-            st2 = SymbolTable.deserialize(sb)
+            symbol_buf = StringBuffer.from_file(f.fileno(), header.total_size)
+            st2 = header.read_symbol_table(symbol_buf)
 
-        self.assertEquals(st2.table, st.table)
-
-
-        # Make assertions about the size
-        # It should be on a word boundary
-
+        for i in xrange(len(st)):
+            self.assertEquals(st[i].symbol, st2[i].symbol)
 
 @attr('perf')
 class PerformanceSymbolTable(PerformanceTestCase):
@@ -72,20 +69,13 @@ class PerformanceSymbolTable(PerformanceTestCase):
 
             f.seek(0)
 
-            header_sbuf = StringBuffer(16)
-            header_sbuf.fread(f.fileno())
-            header_sbuf.seek(0)
+            sb = StringBuffer.from_file(f.fileno(),16)
 
-            header = SymbolTableHeader.deserialize(header_sbuf)
-
-            f.seek(0)
-
-            sbuf = StringBuffer( 16 + header.total_size)
-            sbuf.fread(f.fileno())
-            sbuf.seek(0)
-            st2 = SymbolTable.deserialize(sbuf)
-
-            self.assertEquals(st.table, st2.table)
+            header = MFSObjectHeader.deserialize(sb)
+            symbol_buf = StringBuffer.from_file(f.fileno(), header.total_size)
+            st2 = header.read_symbol_table(symbol_buf)
+            i = random.randint(0, len(st2)-1)
+            self.assertEquals(st[i].symbol, st2[i].symbol)
 
     def test_create(self):
         for i in xrange(10): # Load the libraries and warm up the CPU

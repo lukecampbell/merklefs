@@ -46,20 +46,29 @@ class SymbolTableHeader(MFSObjectHeader):
         sb = string_buffer
         mfs_type = sb.read_uint(1)
         if not mfs_type == cls.mfs_type:
-            print mfs_type
             raise TypeError("object is not a symbol table")
-
         sb.seek(sb.offset()+3)
         entry_no = sb.read_uint(4)
         total_size = sb.read_uint(8)
-
-
         return cls(entry_no, total_size)
 
+    def read_symbol_table(self, string_buffer):
+        sb = string_buffer
+        symbols = []
+
+        for i in xrange(self.entry_no):
+            o = string_buffer.offset()
+            if o % 8 != 0: # Align
+                o += 8 - (o%8)
+                string_buffer.seek(o)
+            symbol = SymbolTableEntry.deserialize(sb)
+            symbols.append(symbol)
+
+        return SymbolTable(self, symbols)
 
 
 
-class SymbolTable(MFSObject):
+class SymbolTableEntry(MFSObject):
     '''
     Symbol Table Entry
     +-----------------------------------------------------------------------------------+
@@ -78,73 +87,95 @@ class SymbolTable(MFSObject):
                     8-byte alignment)
     '''
 
-    table = []
-    def __init__(self, initializer=None):
-        self.table = []
-        if initializer:
-            self.table.extend(initializer)
+    idx           = None
+    symbol_length = None
+    symbol        = None
 
-    def add(self, symbol):
-        if not isinstance(symbol,basestring):
-            raise SerializationError("Failed to serialize symbol")
-
-        self.table.append(symbol)
-        return self
-
-    def __getitem__(self, item):
-        return self.table.__getitem__(item)
-
-    def get_header(self):
-        total_size = 0
-        for i,sym in enumerate(self.table):
-            total_size += 4 # Short for the index and 2 for reserved
-            total_size += 4 # size_t for string length
-            total_size += len(sym)
-            if total_size % 8 != 0:
-                total_size += 8 - (total_size % 8)
-        return SymbolTableHeader(len(self.table), total_size)
+    def __init__(self, idx=0, symbol_length=0, symbol=''):
+        self.idx = idx
+        if symbol_length < len(symbol):
+            raise ValueError('symbol length is less than required')
+        self.symbol_length = max(len(symbol)+1, symbol_length)
+        self.symbol = symbol
 
 
     def serialize(self):
-        total_size = 0
-        total_size += 16 # Table header
-        header = self.get_header()
-        total_size += header.total_size
-        sb = StringBuffer(total_size)
-        sb.write(header.serialize())
-        for i, sym in enumerate(self.table):
-            sb.pack('<HH', i, 0) # Short | reserved
-            sb.pack('<I', len(sym))
-            sb.write(sym)
-            if sb.offset() % 8 != 0: # Align on word-boundary
-                o = sb.offset()
-                sb.seek(o + (8 - (o % 8)))
-
+        sb = StringBuffer(8 + self.symbol_length)
+        sb.pack('<HHI', self.idx, 0, max(len(self.symbol)+1, self.symbol_length)) # Account for null-terminator
+        sb.write(self.symbol)
         return sb
 
     @classmethod
-    def deserialize(cls, string_buf):
-        entries = []
-        sb = string_buf
-        
-        header = StringBuffer(sb.raw_read(16))
-        header = SymbolTableHeader.deserialize(header)
+    def deserialize(cls, string_buffer):
+        sb = string_buffer
+        idx = sb.read_uint(2)
+        sb.read_uint(2)
+        symbol_length = sb.read_uint(4)
+        symbol = sb.raw_read(symbol_length, strip_null=True)
+        return cls(idx,symbol_length,symbol)
 
-        for i in xrange(header.entry_no):
-            idx = sb.read_uint(2)
-            
-            sb.read_uint(2) # Reserved
-            
-            buflen = sb.read_uint(4)
-            if buflen % 8 != 0:
-                buflen += 8 - (buflen % 8)
-            buf = sb.raw_read(buflen)
-            null = buf.find('\x00')
-            if null > 0:
-                buf = buf[:null]
-            for j in xrange(idx - len(entries)):
-                entries.append('')
+    def __len__(self):
+        return 8 + self.symbol_length
 
-            entries.append(buf)
-        return cls(entries)
+
+class SymbolTable(MFSObject):
+    header = None
+    symbols = None
+    def __init__(self, symbol_table_header=None, symbols=None):
+        if symbols is None:
+            symbols = []
+        if symbol_table_header is None:
+            total_size = 0
+            for i in symbols:
+                total_size += len(i)
+                if total_size % 8 != 0:
+                    total_size += 8 - (total_size % 8)
+            symbol_table_header = SymbolTableHeader(len(symbols), total_size)
+
+        self.header = symbol_table_header
+        self.symbols = symbols
+
+    def add(self, symbol):
+        if isinstance(symbol, basestring):
+            if self.symbols:
+                idx = self.symbols[-1].idx + 1
+            else:
+                idx = 0
+            symbol_length = len(symbol)+1
+            symbol = SymbolTableEntry(idx, symbol_length, symbol)
+            return self.add(symbol)
+        elif isinstance(symbol, SymbolTableEntry):
+            self.header.entry_no += 1
+            self.header.total_size += len(symbol)
+            if self.header.total_size % 8 != 0:
+                self.header.total_size += 8 - (self.header.total_size % 8)
+            self.symbols.append(symbol)
+        else:
+            raise TypeError("unknown symbol")
+
+    def serialize(self):
+        header_sb = self.header.serialize()
+        symbol_buffers = [i.serialize() for i in self.symbols]
+
+        sb = StringBuffer( len(header_sb) + self.header.total_size)
+        sb.write(header_sb)
+        for i in symbol_buffers:
+            i.seek(0)
+            sb.write(i)
+        return sb
+
+    @classmethod
+    def deserialize(cls, string_buffer):
+        header = SymbolTableHeader.deserialize(string_buffer)
+        return header.read_symbol_table(string_buffer)
+
+    def __len__(self):
+        return len(self.symbols)
+
+    def __getitem__(self, i):
+        return self.symbols[i]
+
+
+
+
 

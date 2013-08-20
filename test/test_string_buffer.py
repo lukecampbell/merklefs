@@ -94,4 +94,12 @@ class TestStringBuffer(MFSTestCase):
         self.assertEquals(container.read(), 'hello world')
 
 
+    def test_from_file(self):
+        with TemporaryFile('w+b') as f:
+            b = 'hello world'
+            f.write(b)
+            f.seek(0)
+
+            sb = StringBuffer.from_file(f.fileno(), len(b)+1)
+            self.assertEquals(sb.read(), b)
 

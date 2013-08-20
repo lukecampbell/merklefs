@@ -33,6 +33,9 @@ class MFSObjectHeader:
         elif mfs_type == MFSTypes.Datatype:
             from mfs.datatype import DatatypeHeader
             return DatatypeHeader.deserialize(string_buffer)
+        elif mfs_type == MFSTypes.Dataspace:
+            from mfs.dataspace import DataspaceHeader
+            return DataspaceHeader.deserialize(string_buffer)
         raise TypeError("unrecognized object type")
 
 

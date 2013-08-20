@@ -83,12 +83,15 @@ cdef class StringBuffer:
         py_string = <bytes> (self.buff+self.s_offset)
         return py_string
 
-    def raw_read(self, read_bytes=-1):
+    def raw_read(self, read_bytes=-1, strip_null=False):
         if read_bytes < 0:
             read_bytes = self.size - self.s_offset
         if self.check_offset(self.s_offset + read_bytes):
             raise BufferOverflow("offset exceeds buffer size")
-        py_string = <bytes> self.buff[self.s_offset : self.s_offset + read_bytes]
+        if strip_null:
+            py_string = <bytes> (self.buff + self.s_offset)
+        else:
+            py_string = <bytes> self.buff[self.s_offset : self.s_offset + read_bytes]
         self.s_offset += read_bytes
         return py_string
 
@@ -154,6 +157,13 @@ cdef class StringBuffer:
                     raise IOError(strerror(errno))
             total += bytes_read
         self.seek(self.s_offset + total)
+
+    @classmethod
+    def from_file(cls, fd, bytes_to_read):
+        sb = cls(bytes_to_read)
+        sb.fread(fd, bytes_to_read)
+        sb.seek(0)
+        return sb
 
 
     def dump_buffer(self):

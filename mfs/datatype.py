@@ -59,17 +59,13 @@ class DatatypeHeader(MFSObjectHeader):
 
     @classmethod
     def deserialize(cls, string_buffer):
-        offset = string_buffer.offset()
-        try:
-            mfs_type = string_buffer.read_uint(1)
-            if mfs_type != MFSTypes.Datatype:
-                raise TypeError('object is not a datatype')
-            datatype = string_buffer.read_uint(1)
-            flags = string_buffer.read_uint(2)
-            size = string_buffer.read_uint(4)
-            total_size = string_buffer.read_uint(8)
-        finally:
-            string_buffer.seek(offset)
+        mfs_type = string_buffer.read_uint(1)
+        if mfs_type != MFSTypes.Datatype:
+            raise TypeError('object is not a datatype')
+        datatype = string_buffer.read_uint(1)
+        flags = string_buffer.read_uint(2)
+        size = string_buffer.read_uint(4)
+        total_size = string_buffer.read_uint(8)
         return cls(datatype, flags, size, total_size)
 
 class MFSUByteType(DatatypeHeader):
