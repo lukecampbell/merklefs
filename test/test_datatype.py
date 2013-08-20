@@ -13,8 +13,10 @@ from mfs.datatype import MFSFloat32Type, MFSDoubleType, MFSStringType
 from mfs.objects import MFSObjectHeader
 from mfs.string_buffer import StringBuffer
 from tempfile import TemporaryFile
+from nose.plugins.attrib import attr
 
 
+@attr('unit')
 class TestDatatype(MFSTestCase):
 
     def header_check(self, f, dtype_h, datatype, flags, size, total_size):
@@ -79,7 +81,28 @@ class TestDatatype(MFSTestCase):
             dtype_h = MFSInt64Type()
             self.header_check(f, dtype_h, 7, 1, 8, 0)
 
+@attr('perf')
 class DatatypePerformance(PerformanceTestCase):
-    pass
+    def create_datatype(self, dtype_class):
+        with TemporaryFile('w+b') as f:
+            dtype_h = dtype_class()
+            sb = dtype_h.serialize()
+            sb.fwrite(f.fileno())
+            f.seek(0)
+
+            sb = StringBuffer(16)
+            sb.fread(f.fileno())
+            sb.seek(0)
+
+            dtype_h = MFSObjectHeader.deserialize(sb)
+            self.assertIsInstance(dtype_h, DatatypeHeader)
+
+    def test_ubyte_profile(self):
+        for i in xrange(10): # Warm up
+            self.create_datatype(MFSUByteType)
+        for i in xrange(1000):
+            self.profile(self.create_datatype, MFSUByteType)
+
+        self.assertTrue(sum(self.profile_context.stat_list) < 0.5)
 
 

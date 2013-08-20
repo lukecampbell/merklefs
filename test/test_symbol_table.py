@@ -6,8 +6,9 @@ from mfs.symbol_table import SymbolTable, SymbolTableHeader
 from mfs.exceptions import SerializationError
 from mfs.string_buffer import StringBuffer
 from tempfile import TemporaryFile
-import numpy as np
+from nose.plugins.attrib import attr
 
+@attr('unit')
 class TestSymbolTable(MFSTestCase):
     def test_symbol_table(self):
         st = SymbolTable()
@@ -45,6 +46,7 @@ class TestSymbolTable(MFSTestCase):
         # It should be on a word boundary
 
 
+@attr('perf')
 class PerformanceSymbolTable(PerformanceTestCase):
     def create_symbol_tables(self):
         st = SymbolTable()

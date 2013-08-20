@@ -1,8 +1,9 @@
-from test.test_case import MFSTestCase
+from test.test_case import MFSTestCase, attr
 
 from mfs.string_buffer import StringBuffer, BufferOverflow
 from tempfile import TemporaryFile
 
+@attr('unit')
 class TestStringBuffer(MFSTestCase):
     def test_buffer(self):
         sb = StringBuffer(128)
