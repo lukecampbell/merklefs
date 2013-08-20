@@ -1,6 +1,6 @@
 from test.test_case import MFSTestCase
 
-from mfs.string_buffer import StringBuffer
+from mfs.string_buffer import StringBuffer, BufferOverflow
 from tempfile import TemporaryFile
 
 class TestStringBuffer(MFSTestCase):
@@ -30,7 +30,7 @@ class TestStringBuffer(MFSTestCase):
     
     def test_overflow(self):
         sb = StringBuffer(24)
-        with self.assertRaises(OverflowError):
+        with self.assertRaises(BufferOverflow):
             sb.write('this string is definitely longer than 24 characters and should raise an error')
 
         self.assertRaises(OverflowError, sb.seek, -1)
@@ -40,7 +40,7 @@ class TestStringBuffer(MFSTestCase):
         sb.seek(0)
         buf = sb.raw_read(8)
         self.assertEquals(buf, '01234567')
-        self.assertRaises(OverflowError, sb.raw_read, 1)
+        self.assertRaises(BufferOverflow, sb.raw_read, 1)
 
 
     def test_word_align(self):

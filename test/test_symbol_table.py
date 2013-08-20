@@ -86,6 +86,9 @@ class PerformanceSymbolTable(PerformanceTestCase):
             self.assertEquals(st.table, st2.table)
 
     def test_create(self):
+        for i in xrange(10): # Load the libraries and warm up the CPU
+            self.create_symbol_tables()
+
         for i in xrange(1000):
             self.profile(self.create_symbol_tables)
 

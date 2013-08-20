@@ -1,6 +1,7 @@
 from libc.stdlib cimport malloc, free
 from libc.string cimport memset, strerror, memcpy
 from libc.errno cimport errno, EAGAIN
+from mfs.exceptions import BufferOverflow
 import sys
 
 cdef extern from "unistd.h" nogil:
@@ -51,7 +52,7 @@ cdef class StringBuffer:
         If the string is too long an IOError is raised indicating an overflow, no data is written in this case
         '''
         if self.check_offset(self.s_offset + len(string)):
-            raise OverflowError("string length exceeds buffer size")
+            raise BufferOverflow("string length exceeds buffer size")
         if isinstance(string, basestring):
             memcpy(self.buff + self.s_offset, <char *> string, len(string))
         elif isinstance(string, StringBuffer):
@@ -62,7 +63,7 @@ cdef class StringBuffer:
         
     cdef _write_sb(self, StringBuffer string):
         if self.check_offset(self.s_offset + len(string)):
-            raise OverflowError("string length exceeds buffer size")
+            raise BufferOverflow("string length exceeds buffer size")
         memcpy(self.buff + self.s_offset, string.buff + string.s_offset, string.size  - string.s_offset)
         self.s_offset += string.size - string.s_offset
 
@@ -72,7 +73,7 @@ cdef class StringBuffer:
         Sets the buffer offset
         '''
         if self.check_offset(offset):
-            raise OverflowError("offset exceeds buffer size")
+            raise BufferOverflow("offset exceeds buffer size")
         self.s_offset = offset
 
     def read(self):
@@ -86,7 +87,7 @@ cdef class StringBuffer:
         if read_bytes < 0:
             read_bytes = self.size - self.s_offset
         if self.check_offset(self.s_offset + read_bytes):
-            raise OverflowError("offset exceeds buffer size")
+            raise BufferOverflow("offset exceeds buffer size")
         py_string = <bytes> self.buff[self.s_offset : self.s_offset + read_bytes]
         self.s_offset += read_bytes
         return py_string
@@ -142,7 +143,7 @@ cdef class StringBuffer:
             br = bytes_to_read
         cdef int filedes = fd
         if self.check_offset(self.s_offset + br):
-            raise OverflowError("read buffer exceeds string buffer size")
+            raise BufferOverflow("read buffer exceeds string buffer size")
 
         while total < br:
             bytes_read = read(filedes, self.buff + self.s_offset + total, br - total)
@@ -178,7 +179,7 @@ cdef class StringBuffer:
         Reads an unsigned integer of a specified number of bytes
         '''
         if self.check_offset(self.s_offset + byte_count):
-            raise OverflowError("Offset exceeds buffer size")
+            raise BufferOverflow("Offset exceeds buffer size")
         buf = <bytes> self.buff[self.s_offset : self.s_offset + byte_count]
         self.s_offset += byte_count
 

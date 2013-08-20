@@ -6,7 +6,8 @@
 '''
 
 
-from test.test_case import MFSTestCase, PerformanceTestCase
+from test.test_case import MFSTestCase
+from test.performance import PerformanceTestCase
 
 
 class TestAttribute(MFSTestCase):
