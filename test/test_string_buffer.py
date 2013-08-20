@@ -103,3 +103,10 @@ class TestStringBuffer(MFSTestCase):
             sb = StringBuffer.from_file(f.fileno(), len(b)+1)
             self.assertEquals(sb.read(), b)
 
+    def test_hash(self):
+        buf = StringBuffer("Hello World")
+        buf_sha = buf.hash()
+        from hashlib import sha1
+        outside = StringBuffer(sha1(buf.raw_read()).digest())
+        self.assertEquals(outside.raw_read(), buf_sha.raw_read())
+
