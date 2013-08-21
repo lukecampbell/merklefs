@@ -3,7 +3,7 @@ from test.test_case import MFSTestCase
 from test.performance import PerformanceTestCase
 
 from mfs.objects import MFSObjectHeader
-from mfs.symbol_table import SymbolTable, SymbolTableHeader
+from mfs.symbol_table import SymbolTableHeader
 from mfs.exceptions import SerializationError
 from mfs.string_buffer import StringBuffer
 from tempfile import TemporaryFile
@@ -13,13 +13,13 @@ import random
 @attr('unit')
 class TestSymbolTable(MFSTestCase):
     def test_symbol_table(self):
-        st = SymbolTable()
+        st = SymbolTableHeader()
 
         st.add('root')
         self.assertRaises(TypeError, st.add, 1)
 
     def test_symbol_table_write(self):
-        st = SymbolTable()
+        st = SymbolTableHeader()
         st.add('root')
         st.add('') # Null symbol
         st.add('time')
@@ -38,15 +38,15 @@ class TestSymbolTable(MFSTestCase):
             header = MFSObjectHeader.deserialize(sb)
 
             symbol_buf = StringBuffer.from_file(f.fileno(), header.total_size)
-            st2 = header.read_symbol_table(symbol_buf)
+            header.deserialize_table(symbol_buf)
 
-        for i in xrange(len(st)):
-            self.assertEquals(st[i].symbol, st2[i].symbol)
+        for i in xrange(len(st.symbols)):
+            self.assertEquals(st.symbols[i].symbol, header.symbols[i].symbol)
 
 @attr('perf')
 class PerformanceSymbolTable(PerformanceTestCase):
     def create_symbol_tables(self):
-        st = SymbolTable()
+        st = SymbolTableHeader()
         st.add('root')
         st.add('time')
         st.add('time.long_name:universal time')
@@ -73,9 +73,9 @@ class PerformanceSymbolTable(PerformanceTestCase):
 
             header = MFSObjectHeader.deserialize(sb)
             symbol_buf = StringBuffer.from_file(f.fileno(), header.total_size)
-            st2 = header.read_symbol_table(symbol_buf)
-            i = random.randint(0, len(st2)-1)
-            self.assertEquals(st[i].symbol, st2[i].symbol)
+            header.deserialize_table(symbol_buf)
+            i = random.randint(0, len(st.symbols)-1)
+            self.assertEquals(st.symbols[i].symbol, header.symbols[i].symbol)
 
     def test_create(self):
         for i in xrange(10): # Load the libraries and warm up the CPU
