@@ -103,6 +103,7 @@ class SymbolTableEntry(MFSObject):
         sb = StringBuffer(8 + self.symbol_length)
         sb.pack('<HHI', self.idx, 0, max(len(self.symbol)+1, self.symbol_length)) # Account for null-terminator
         sb.write(self.symbol)
+        sb.seek(0)
         return sb
 
     @classmethod
@@ -160,7 +161,6 @@ class SymbolTable(MFSObject):
         sb = StringBuffer( len(header_sb) + self.header.total_size)
         sb.write(header_sb)
         for i in symbol_buffers:
-            i.seek(0)
             sb.write(i)
         return sb
 

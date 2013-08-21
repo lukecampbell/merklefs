@@ -45,6 +45,7 @@ class DataspaceHeader(MFSObjectHeader):
     def serialize(self):
         sb = StringBuffer(16)
         sb.pack('<BBBBIQ', self.mfs_type, self.ver, self.dims, self.flags, 0, self.total_size)
+        sb.seek(0)
         return sb
 
     @classmethod

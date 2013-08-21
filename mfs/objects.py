@@ -27,7 +27,10 @@ class MFSObjectHeader:
         mfs_type = string_buffer.read_uint(1)
         string_buffer.seek(offset)
 
-        if mfs_type == MFSTypes.SymbolTable:
+        if mfs_type == MFSTypes.MerkleNode:
+            from mfs.node import MerkleNodeHeader
+            return MerkleNodeHeader.deserialize(string_buffer)
+        elif mfs_type == MFSTypes.SymbolTable:
             from mfs.symbol_table import SymbolTableHeader
             return SymbolTableHeader.deserialize(string_buffer)
         elif mfs_type == MFSTypes.Datatype:
@@ -43,6 +46,15 @@ class MFSObjectHeader:
 
 
 class MFSObject:
-    pass
+    def __init__(self):
+        raise NotImplementedError('abstract class')
+
+    def serialize(self):
+        raise NotImplementedError('abstract class')
+
+    @classmethod
+    def deserialize(cls):
+        raise NotImplementedError('abstract class')
+
 
 

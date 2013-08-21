@@ -55,6 +55,7 @@ class DatatypeHeader(MFSObjectHeader):
     def serialize(self):
         sb = StringBuffer(16)
         sb.pack('<BBHIQ', self.mfs_type, self.datatype, self.flags, self.size, self.total_size)
+        sb.seek(0)
         return sb
 
     @classmethod
