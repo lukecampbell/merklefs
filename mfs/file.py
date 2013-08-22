@@ -20,11 +20,11 @@ class MerkleFile:
         self.path = path
         self.merkle_object_header = merkle_object_header
 
-    def open(self):
-        pass
+    def write(self):
+        sb = self.merkle_object_header.serialize()
+        #digest 
 
-    def close(self):
-        pass
+
 
     def __enter__(self):
         pass
